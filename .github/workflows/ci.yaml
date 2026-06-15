@@ -1,0 +1,209 @@
+name: 'ci'
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    types: [ opened, edited, reopened, synchronize, review_requested ]
+    branches: [ '*' ]
+  workflow_call:
+
+env:
+  TEMPLATE_ROOT: ./content/Ddth
+  TAG_PREFIX: v
+  NUGET_PROJECT_FILE: Ddth.Templates.Classlib.csproj
+
+jobs:
+  BuildAndTestTemplate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet: [ '6.x', '7.x', '8.x', '9.x', '10.x' ]
+    name: Build and test the original template with dotnet ${{ matrix.dotnet }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Setup .NET 6.x # min .NET required by this project is 6.x
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '6.x'
+      - name: Setup dotnet ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Choose .NET version
+        run: |
+          VERSION=$(echo ${{ matrix.dotnet }} | sed -E "s/^([0-9]+).*/\1/")
+          echo {\"sdk\": {\"version\": \"${VERSION}\"}} > global.json
+          cat global.json
+      - name: Display dotnet version
+        run: dotnet --version
+      - name: Install dependencies
+        run: cd ${{ env.TEMPLATE_ROOT }} && dotnet restore
+      - name: Build
+        run: cd ${{ env.TEMPLATE_ROOT }} && dotnet build --no-restore
+      - name: Test
+        run: cd ${{ env.TEMPLATE_ROOT }} && dotnet test --no-restore
+
+  ReleaseDryRun:
+    if: github.event_name == 'push'
+    needs: BuildAndTestTemplate
+    runs-on: ubuntu-latest
+    outputs:
+      RESULT: ${{ steps.release_dry_run.outputs.result }}
+      VERSION: ${{ steps.release_dry_run.outputs.releaseVersion }}
+      RELEASE_NOTES: ${{ steps.release_dry_run.outputs.releaseNotes }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+      - name: Release (dry-run)
+        id: release_dry_run
+        uses: btnguyen2k/action-semrelease@v4
+        with:
+          dry-run: true
+          auto-mode: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tag-major-release: false
+          tag-minor-release: false
+          branches: ${{ github.ref_name }}
+          tag-prefix: ${{ env.TAG_PREFIX }}
+          tag-only: true
+
+  TestNugetPackage:
+    needs: BuildAndTestTemplate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet: [ '6.x', '7.x', '8.x', '9.x', '10.x' ]
+    name: Build NuGet package with dotnet ${{ matrix.dotnet }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+      - name: Setup .NET 6.x # min .NET required by this project is 6.x
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '6.x'
+      - name: Setup dotnet ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Choose .NET version
+        run: |
+          VERSION=$(echo ${{ matrix.dotnet }} | sed -E "s/^([0-9]+).*/\1/")
+          echo {\"sdk\": {\"version\": \"${VERSION}\"}} > global.json
+          cat global.json
+      - name: Display dotnet version
+        run: dotnet --version
+      - name: Update NuGet metadata
+        uses: actions/github-script@v9
+        env:
+          RESULT: ${{ needs.ReleaseDryRun.outputs.RESULT }}
+          VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
+          RELEASE_NOTES: ${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}
+        with:
+          script: |
+            console.log(`🐛 [DEBUG] RESULT: ${process.env['RESULT']}`);
+            var version = '0.0.0';
+            var releaseNotes = process.env['RESULT'];
+
+            if (process.env['RESULT'] == 'SUCCESS') {
+              version = process.env['VERSION'];
+              releaseNotes = process.env['RELEASE_NOTES'];
+            }
+            console.log(`🐛 [DEBUG] RELEASE VERSION: ${version}`);
+            console.log(`🐛 [DEBUG] RELEASE NOTES: ${releaseNotes}`);
+
+            releaseNotes = releaseNotes.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            var fs = require('fs');
+            var content = fs.readFileSync('${{ env.NUGET_PROJECT_FILE }}', 'utf8');
+            content = content.replace(/<<VERSION>>/g, version);
+            content = content.replace(/<<RELEASE-NOTES>>/g, releaseNotes);
+            content = content.replace(/<<RELEASE_NOTES>>/g, releaseNotes);
+            fs.writeFileSync('${{ env.NUGET_PROJECT_FILE }}', content);
+      - name: Build NuGet package
+        run: |
+          cat ${{ env.NUGET_PROJECT_FILE }}
+          dotnet pack
+
+  TestGenerateSolutionLinux:
+    runs-on: ubuntu-latest
+    needs: [BuildAndTestTemplate, TestNugetPackage]
+    strategy:
+      matrix:
+        dotnet: [ '6.x', '7.x', '8.x', '9.x', '10.x' ]
+    name: (Linux) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Setup .NET 6.x # min .NET required by this project is 6.x
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '6.x'
+      - name: Setup dotnet ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Choose .NET version
+        run: |
+          VERSION=$(echo ${{ matrix.dotnet }} | sed -E "s/^([0-9]+).*/\1/")
+          echo {\"sdk\": {\"version\": \"${VERSION}\"}} > global.json
+          cat global.json
+      - name: Display dotnet version
+        run: dotnet --version
+      - name: Install template
+        run: cd ${{ env.TEMPLATE_ROOT }} && dotnet new install ./
+      - name: Generate solution
+        run: |
+          mkdir temp && \
+          cd temp && \
+          dotnet new clt -n MyLibLinux
+      - name: Install dependencies
+        run: cd temp/ && dotnet restore
+      - name: Build
+        run: cd temp/ && dotnet build --no-restore
+      - name: Test
+        run: cd temp/ && dotnet test --no-restore
+
+  TestGenerateSolutionWindows:
+    runs-on: windows-2022
+    needs: [BuildAndTestTemplate, TestNugetPackage]
+    strategy:
+      matrix:
+        dotnet: [ '6.x', '7.x', '8.x', '9.x', '10.x' ]
+    name: (Windows) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Setup .NET 6.x # min .NET required by this project is 6.x
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '6.x'
+      - name: Setup dotnet ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Display dotnet version
+        run: dotnet --version
+      - name: Install template
+        run: cd ${{ env.TEMPLATE_ROOT }} && dotnet new install ./
+      - name: Generate solution
+        run: |
+          mkdir temp
+          cd temp
+          dotnet new clt -n MyLibWindows
+      - name: Install dependencies
+        run: |
+          cd temp
+          dotnet restore
+      - name: Build
+        run: |
+          cd temp
+          dotnet build --no-restore
+      - name: Test
+        run: |
+          cd temp
+          dotnet test --no-restore

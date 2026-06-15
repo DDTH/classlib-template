@@ -4,7 +4,7 @@ This repository is **not a library** — it is a NuGet **`dotnet new` template p
 
 ## Architecture
 
-- **`classlib-template.csproj`** (root) is a packaging-only project: `<PackageType>Template</PackageType>`, `<IncludeBuildOutput>false</IncludeBuildOutput>`, and `<Compile Remove="**\*" />`. It compiles no code — it only bundles `content/**` (excluding `bin`/`obj`) into a template `.nupkg`.
+- **`Ddth.Templates.Classlib.csproj`** (root) is a packaging-only project: `<PackageType>Template</PackageType>`, `<IncludeBuildOutput>false</IncludeBuildOutput>`, and `<Compile Remove="**\*" />`. It compiles no code — it only bundles `content/**` (excluding `bin`/`obj`) into a template `.nupkg`.
   - `<<VERSION>>` and `<<RELEASE-NOTES>>` in the csproj are **placeholders substituted at release/pack time** (CI). Do not hardcode real values over them.
   - The `CopyPackage` target copies the produced `.nupkg` back into the project directory after `dotnet pack`.
   - `README.md`, `LICENSE.md`, and `RELEASE-NOTES.md` are packed into the package and referenced by the csproj — keep all three present.

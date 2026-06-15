@@ -1,0 +1,7 @@
+name: "CodeQL config"
+
+paths-ignore:
+  - 'Ddth.Mylib.Tests/**'
+
+queries:
+  - uses: security-and-quality
