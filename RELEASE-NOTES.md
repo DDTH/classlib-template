@@ -1,0 +1,1 @@
+# classlib-template release notes

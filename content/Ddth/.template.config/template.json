@@ -1,0 +1,16 @@
+
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "btnguyen2k <btnguyen2k at gmail>",
+    "classifications": [ "Classlib" ],
+    "identity": "ClasslibTemplate",
+    "groupIdentity": "Ddth",
+    "name": "Classlib Template",
+    "shortName": "clt",
+    "sourceName": "Ddth",
+    "exclude": [ "**/[Bb]in/**", "**/[Oo]bj/**", ".template.config/**/*", "**/*.filelist", "**/*.user", "**/*.lock.json", ".vs/**/*" ],
+    "tags": {
+        "language": "C#",
+        "type": "solution"
+    }
+}
