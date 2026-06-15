@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet: [ '6x', '7x', '8.x', '9.x', '10.x' ]
+        dotnet: [ '6.x', '7x', '8.x', '9.x', '10.x' ]
     name: Build and test the original template with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet: [ '6x', '7x', '8.x', '9.x', '10.x' ]
+        dotnet: [ '6.x', '7x', '8.x', '9.x', '10.x' ]
     name: Build NuGet package with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Check out code
@@ -139,7 +139,7 @@ jobs:
     needs: [BuildAndTestTemplate, TestNugetPackage]
     strategy:
       matrix:
-        dotnet: [ '6x', '7x', '8.x', '9.x', '10.x' ]
+        dotnet: [ '6.x', '7x', '8.x', '9.x', '10.x' ]
     name: (Linux) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
@@ -178,7 +178,7 @@ jobs:
     needs: [BuildAndTestTemplate, TestNugetPackage]
     strategy:
       matrix:
-        dotnet: [ '6x', '7x', '8.x', '9.x', '10.x' ]
+        dotnet: [ '6.x', '7x', '8.x', '9.x', '10.x' ]
     name: (Windows) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
