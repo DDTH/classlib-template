@@ -2,3 +2,7 @@
 # Generate its content quickly using the following command:
 #   git log origin..HEAD | grep "^\s" > .semrelease/this_release
 #!VERSION=0.0.1
+- feat: Sample solution with a classlib project and a test project.
+- feat: Placeholders for README, LICENSE, and RELEASE-NOTES.
+- feat: Pre-configured .gitignore and .editorconfig files.
+- feat: Ready-to-use GitHub Actions workflow for building, testing and releasing the lib to NuGet.
