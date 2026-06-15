@@ -199,7 +199,7 @@ jobs:
         run: |
           mkdir temp
           cd temp
-          dotnet new bat -n MyLibWindows
+          dotnet new clt -n MyLibWindows
       - name: Install dependencies
         run: |
           cd temp
