@@ -44,11 +44,6 @@ jobs:
         run: cd ${{ env.TEMPLATE_ROOT }} && dotnet build --no-restore
       - name: Test
         run: cd ${{ env.TEMPLATE_ROOT }} && dotnet test --no-restore
-      # - name: Codecov
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     fail_ci_if_error: true
-      #     token: ${{ secrets.CODECOV_TOKEN }}
 
   ReleaseDryRun:
     if: github.event_name == 'push'
