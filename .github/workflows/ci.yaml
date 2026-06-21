@@ -22,7 +22,7 @@ jobs:
     name: Build and test the original template with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
         uses: actions/setup-dotnet@v5
         with:
@@ -55,7 +55,7 @@ jobs:
       RELEASE_NOTES: ${{ steps.release_dry_run.outputs.releaseNotes }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install Node
         uses: actions/setup-node@v6
         with:
@@ -82,7 +82,7 @@ jobs:
     name: Build NuGet package with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
         uses: actions/setup-dotnet@v5
         with:
@@ -138,7 +138,7 @@ jobs:
     name: (Linux) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
         uses: actions/setup-dotnet@v5
         with:
@@ -177,7 +177,7 @@ jobs:
     name: (Windows) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
         uses: actions/setup-dotnet@v5
         with:
