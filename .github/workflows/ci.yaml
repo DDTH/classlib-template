@@ -24,11 +24,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
@@ -84,11 +84,11 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
@@ -140,11 +140,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
@@ -179,11 +179,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Display dotnet version
