@@ -1,3 +1,5 @@
 # This file has been cleaned up post-releasing version 0.0.2.
 # Generate its content quickly using the following command:
 #   git log origin..HEAD | grep "^\s" > .semrelease/this_release
+#!VERSION=0.1.0
+- feat(ghcp): add pre-built ready-to-use GHCP agents (commit message generator, code and security reviewers)

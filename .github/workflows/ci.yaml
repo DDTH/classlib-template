@@ -22,13 +22,13 @@ jobs:
     name: Build and test the original template with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
@@ -55,9 +55,9 @@ jobs:
       RELEASE_NOTES: ${{ steps.release_dry_run.outputs.releaseNotes }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
       - name: Release (dry-run)
@@ -82,13 +82,13 @@ jobs:
     name: Build NuGet package with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
@@ -138,13 +138,13 @@ jobs:
     name: (Linux) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
@@ -177,13 +177,13 @@ jobs:
     name: (Windows) Build and test the generated solution with dotnet ${{ matrix.dotnet }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup .NET 6.x # min .NET required by this project is 6.x
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '6.x'
       - name: Setup dotnet ${{ matrix.dotnet }}
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Display dotnet version
