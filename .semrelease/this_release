@@ -4,3 +4,4 @@
 #!VERSION=0.1.0
 - feat(ghcp): add pre-built ready-to-use GHCP agents (commit message generator, code and security reviewers)
 - patch(gh): add explicit workflow permissions
+- patch(nuget): switch to NuGet Trusted publishing workflow
