@@ -1,5 +1,16 @@
 # classlib-template release notes
 
+## 2026-09-29 - v0.1.0
+
+### Added/Refactoring/Deprecation
+
+- Feat(ghcp): add pre-built ready-to-use GHCP agents (commit message generator, code and security reviewers)
+
+### Fixed/Improvements
+
+- Patch(gh): add explicit workflow permissions
+- Patch(nuget): switch to NuGet Trusted publishing workflow
+
 ## 2026-06-15 - v0.0.2
 
 ### Added/Refactoring/Deprecation
