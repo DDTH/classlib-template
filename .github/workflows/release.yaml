@@ -1,10 +1,14 @@
 # Automatically release a new version when a PR is merged to branch `release`
 
 name: 'release'
+
 on:
   pull_request:
     types: [ closed ]
     branches: [ release ]
+
+permissions:
+  contents: read
 
 env:
   BRANCH_TO_RELEASE: 'release'

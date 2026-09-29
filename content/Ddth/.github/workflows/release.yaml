@@ -6,6 +6,9 @@ on:
     types: [ closed ]
     branches: [ release ]
 
+permissions:
+  contents: read
+
 env:
   BRANCH_TO_RELEASE: 'release'
   TAG_PREFIX: 'v'
