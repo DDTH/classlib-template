@@ -6,6 +6,9 @@ on:
     types: [ closed ]
     branches: [ release ]
 
+permissions:
+  contents: read
+
 env:
   BRANCH_TO_RELEASE: 'release'
   TAG_PREFIX: 'v'
@@ -63,6 +66,12 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      ## New NuGet flow using Trusted publishing
+      # - name: NuGet login (OIDC → temp API key)
+      #   uses: NuGet/login@v1
+      #   id: nuget_login
+      #   with:
+      #     user: ${{ secrets.NUGET_USER }}
       - name: Update NuGet metadata
         uses: actions/github-script@v9
         env:
@@ -84,7 +93,7 @@ jobs:
             content = content.replace(/\$\{RELEASE-NOTES\}/g, releaseNotes);
             content = content.replace(/\$\{RELEASE_NOTES\}/g, releaseNotes);
             fs.writeFileSync('${{ env.NUGET_PROJECT_FILE }}.final', content);
-      - name: Update other metadata
+      - name: Publish NuGet package
         run: |
           RESULT='${{ needs.ReleaseDryRun.outputs.RESULT }}'
           VERSION='${{ needs.ReleaseDryRun.outputs.VERSION }}'
@@ -109,6 +118,7 @@ jobs:
           cat ${{ env.NUGET_PROJECT_FILE }}
           dotnet pack --configuration=Release -o ./
           dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ secrets.NUGET_API_KEY }}
+          # dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
           mv -f ${{ env.NUGET_PROJECT_FILE }}.bak ${{ env.NUGET_PROJECT_FILE }}
 
           echo ========== commit updates ==========
