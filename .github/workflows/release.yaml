@@ -77,6 +77,7 @@ jobs:
       - name: Display dotnet version
         run: dotnet --version
       - name: NuGet login (OIDC → temp API key)
+        # New NuGet Trusted Publishing workflow (ref https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing#github-actions-setup)
         uses: NuGet/login@v1
         id: nuget_login
         with:
@@ -127,6 +128,7 @@ jobs:
           cat ${{ env.NUGET_PROJECT_FILE }}
           dotnet pack
           # dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ secrets.NUGET_API_KEY }}
+          # New NuGet Trusted Publishing workflow (ref https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing#github-actions-setup)
           dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
           mv -f ${{ env.NUGET_PROJECT_FILE }}.bak ${{ env.NUGET_PROJECT_FILE }}
 
