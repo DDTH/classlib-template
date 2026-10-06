@@ -9,6 +9,8 @@
 
 Temp.csproj
 [Tt]emp/
+/.local/
+/.vscode/
 
 # Build results
 [Dd]ebug/
