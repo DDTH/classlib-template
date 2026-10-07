@@ -45,12 +45,12 @@
         <LocalizeTemplates>false</LocalizeTemplates>
     </PropertyGroup>
 
-    <Target Name="CopyPackage" AfterTargets="Pack">
+    <!-- <Target Name="CopyPackage" AfterTargets="Pack">
         <Copy
         SourceFiles="$(OutputPath)..\$(PackageId).$(PackageVersion).nupkg"
         DestinationFolder="$(ProjectDir)"
         />
-    </Target>
+    </Target> -->
 
     <ItemGroup>
         <PackageReference Include="Microsoft.TemplateEngine.Tasks" Version="*" PrivateAssets="all" IsImplicitlyDefined="true"/>
