@@ -61,7 +61,6 @@ jobs:
 
   ReleaseDryRun:
     if: github.event_name == 'push'
-    needs: BuildAndTest
     runs-on: ubuntu-latest
     outputs:
       RESULT: ${{ steps.release_dry_run.outputs.result }}
@@ -88,7 +87,7 @@ jobs:
           tag-only: true
 
   TestNuGetPackage:
-    needs: ReleaseDryRun
+    needs: [ BuildAndTest, ReleaseDryRun ]
     runs-on: ubuntu-latest
     if: needs.ReleaseDryRun.outputs.RESULT == 'SUCCESS'
     steps:

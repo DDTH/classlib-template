@@ -64,8 +64,9 @@ jobs:
       VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
       RELEASE_NOTES: ${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}
     steps:
-      - uses: actions/checkout@v7
-      - name: Setup dotnet ${{ env.DOTNET_VERSION }}
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -82,66 +83,104 @@ jobs:
         id: nuget_login
         with:
           user: ${{ secrets.NUGET_USER }}
-      - name: Update NuGet metadata
+      - name: Prepare NuGet metadata
         uses: actions/github-script@v9
         env:
-          RESULT: ${{ needs.ReleaseDryRun.outputs.RESULT }}
           VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
           RELEASE_NOTES: ${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}
         with:
           script: |
-            console.log('🕘 Updating metadata...')
-            console.log(`   🐛 [DEBUG] RESULT: ${process.env['RESULT']}`);
-            console.log(`   🐛 [DEBUG] RELEASE VERSION: ${process.env['VERSION']}`);
-            console.log(`   🐛 [DEBUG] RELEASE NOTES: ${process.env['RELEASE_NOTES']}`);
+            const fs = require('fs');
+            const path = require('path');
 
-            var releaseNotes = process.env['RELEASE_NOTES'];
-            releaseNotes = releaseNotes.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            var fs = require('fs');
-            var content = fs.readFileSync('${{ env.NUGET_PROJECT_FILE }}', 'utf8');
-            content = content.replace(/<<VERSION>>/g, process.env['VERSION']);
-            content = content.replace(/<<RELEASE-NOTES>>/g, releaseNotes);
-            content = content.replace(/<<RELEASE_NOTES>>/g, releaseNotes);
-            fs.writeFileSync('${{ env.NUGET_PROJECT_FILE }}.final', content);
+            const version = process.env.VERSION ?? '';
+            const releaseNotes = process.env.RELEASE_NOTES ?? '';
+            const runnerTemp = process.env.RUNNER_TEMP;
+
+            const packageVersionPattern =
+              /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+
+            if (version.length > 128 || !packageVersionPattern.test(version)) {
+              throw new Error(
+                'Release version is not a valid SemVer-shaped package version.'
+              );
+            }
+
+            if (!runnerTemp) {
+              throw new Error('RUNNER_TEMP is not available.');
+            }
+
+            const invalidXml10Character =
+              /[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
+
+            if (invalidXml10Character.test(releaseNotes)) {
+              throw new Error(
+                'Release notes contain characters that are invalid in XML 1.0.'
+              );
+            }
+
+            const maximumReleaseNotesSize = 8 * 1024;
+            const releaseNotesSize = Buffer.byteLength(releaseNotes, 'utf8');
+
+            if (releaseNotesSize > maximumReleaseNotesSize) {
+              throw new Error(
+                `Release notes exceed ${maximumReleaseNotesSize} UTF-8 bytes.`
+              );
+            }
+
+            const releaseNotesFile = path.join(
+              runnerTemp,
+              'release-notes.txt'
+            );
+
+            fs.writeFileSync(releaseNotesFile, releaseNotes, {
+              encoding: 'utf8',
+              flag: 'w',
+              mode: 0o600
+            });
+
+            console.log('ℹ️ NuGet metadata prepared.');
+            console.log(`ℹ️ Release version: ${version}`);
+            console.log(`ℹ️ Release notes size: ${releaseNotesSize} UTF-8 bytes`);
       - name: Publish NuGet package
+        env:
+          VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
+          RELEASE_NOTES: ${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}
         run: |
-          RESULT='${{ needs.ReleaseDryRun.outputs.RESULT }}'
-          VERSION='${{ needs.ReleaseDryRun.outputs.VERSION }}'
-          RELEASE_NOTES='${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}'
+          echo "🕘 Updating ${FILE_CHANGELOG} and other metadata..."
 
-          echo "🕘 Updating metadata..."
-
+          echo ========== Update ${FILE_CHANGELOG} file ==========
           DATE=`date +%Y-%m-%d`
           head -1 ${FILE_CHANGELOG} > .temp.md
-          echo -e "\n## ${DATE} - v${VERSION}\n\n${RELEASE_NOTES}" >> .temp.md
+          {
+            printf '\n## %s - v%s\n\n' "${DATE}" "${VERSION}"
+            printf '%s\n' "${RELEASE_NOTES}"
+          } >> .temp.md
           tail -n +2 ${FILE_CHANGELOG} >> .temp.md
           mv -f .temp.md ${FILE_CHANGELOG}
-          echo ========== content of ${FILE_CHANGELOG} ==========
-          cat ${FILE_CHANGELOG}
+          head -100 ${FILE_CHANGELOG}
 
-          echo ========== update .md files ==========
+          echo ========== Update .md files ==========
           sed -i -E "s/<<VERSION>>/v${VERSION}/" ./*.md
 
           echo ========== Build and Publish NuGet package ==========
-          cp -f ${{ env.NUGET_PROJECT_FILE }} ${{ env.NUGET_PROJECT_FILE }}.bak
-          mv -f ${{ env.NUGET_PROJECT_FILE }}.final ${{ env.NUGET_PROJECT_FILE }}
-          cat ${{ env.NUGET_PROJECT_FILE }}
-          dotnet pack
-          # dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ secrets.NUGET_API_KEY }}
-          # New NuGet Trusted Publishing workflow (ref https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing#github-actions-setup)
+          dotnet pack "${NUGET_PROJECT_FILE}" \
+            --configuration Release \
+            --output ./ \
+            -p:PackageVersion="${VERSION}" \
+            -p:PackageReleaseNotesFile="${RUNNER_TEMP}/release-notes.txt"
           dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
-          mv -f ${{ env.NUGET_PROJECT_FILE }}.bak ${{ env.NUGET_PROJECT_FILE }}
 
-          echo ========== commit updates ==========
+          echo ========== Commit updates ==========
           git config --global user.email "<>"
           git config --global user.name "CI Build"
           git commit -am "Update metadata for new version ${VERSION}"
           git push origin ${BRANCH_TO_RELEASE}
 
-          # echo ========== tag ==========
-          # git tag -f -a "${TAG_PREFIX}${VERSION}" -m "Release ${TAG_PREFIX}/v${VERSION}"
-          # git push origin "${TAG_PREFIX}${VERSION}" -f
-          # echo "✅ Done."
+          echo ========== Tag ==========
+          git tag -f -a "${TAG_PREFIX}${VERSION}" -m "Release ${TAG_PREFIX}/v${VERSION}"
+          git push origin "${TAG_PREFIX}${VERSION}" -f
+          echo "✅ Done."
       - name: SemRelease
         uses: btnguyen2k/action-semrelease@v4
         with:
@@ -152,8 +191,9 @@ jobs:
           branches: ${{ env.BRANCH_TO_RELEASE }}
           tag-prefix: ${{ env.TAG_PREFIX }}
       - name: Cleanup file .semrelease/this_release
+        env:
+          VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
         run: |
-          VERSION='${{ needs.ReleaseDryRun.outputs.VERSION }}'
           echo "🕘 Cleaning up file .semrelease/this_release..."
           echo "# This file has been cleaned up post-releasing version ${VERSION}." > .semrelease/this_release
           echo "# Generate its content quickly using the following command:" >> .semrelease/this_release
