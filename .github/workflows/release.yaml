@@ -7,6 +7,10 @@ on:
     types: [ closed ]
     branches: [ release ]
 
+concurrency:
+  group: release-${{ github.repository }}-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -31,9 +35,14 @@ jobs:
       RESULT: ${{ steps.release_dry_run.outputs.result }}
       VERSION: ${{ steps.release_dry_run.outputs.releaseVersion }}
       RELEASE_NOTES: ${{ steps.release_dry_run.outputs.releaseNotes }}
+      SOURCE_SHA: ${{ steps.source.outputs.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+      - name: Capture release source
+        id: source
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Install Node
         uses: actions/setup-node@v7
         with:
@@ -63,16 +72,21 @@ jobs:
       RESULT: ${{ needs.ReleaseDryRun.outputs.RESULT }}
       VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
       RELEASE_NOTES: ${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}
+    env:
+      SOURCE_SHA: ${{ needs.ReleaseDryRun.outputs.SOURCE_SHA }}
     steps:
-      - name: Checkout code
+      - name: Checkout release source
         uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
       - name: Setup .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Choose .NET version
         run: |
-          VERSION=$(echo ${{ matrix.dotnet }} | sed -E "s/^([0-9]+).*/\1/")
+          VERSION=$(echo ${{ env.DOTNET_VERSION }} | sed -E "s/^([0-9]+).*/\1/")
           echo {\"sdk\": {\"version\": \"${VERSION}\"}} > global.json
           cat global.json
       - name: Display dotnet version
@@ -170,6 +184,14 @@ jobs:
             -p:PackageVersion="${VERSION}" \
             -p:PackageReleaseNotesFile="${RUNNER_TEMP}/release-notes.txt"
           dotnet nuget push *.nupkg --source "nuget.org" --api-key ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+
+          echo ========== Verify remote SHA ==========
+          git fetch origin "${BRANCH_TO_RELEASE}"
+          REMOTE_SHA=$(git rev-parse FETCH_HEAD)
+          if [ "${REMOTE_SHA}" != "${SOURCE_SHA}" ]; then
+            echo "release branch changed after version calculation"
+            exit 1
+          fi
 
           echo ========== Commit updates ==========
           git config --global user.email "<>"

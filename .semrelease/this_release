@@ -4,3 +4,4 @@
 #!VERSION=0.1.1
 - refactor(ci): migrate to NuGet Trusted Publishing workflow
 - patch(codeql): fix CodeQL warnings
+- patch(workflow/release): make sure release tag is immutable during the release process

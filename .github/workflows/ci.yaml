@@ -5,6 +5,12 @@ on:
   pull_request:
     types: [ opened, edited, reopened, synchronize, review_requested ]
   workflow_call:
+    inputs:
+      SOURCE_SHA:
+        description: 'Exact commit to validate; defaults to the triggering commit.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -27,6 +33,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.SOURCE_SHA || github.sha }}
       - name: Setup required .NET ${{ env.DOTNET_VERSION }} # always install the min .NET version required by the package
         uses: actions/setup-dotnet@v6
         with:
@@ -36,12 +44,32 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
+        env:
+          REQUESTED_DOTNET_VERSION: ${{ matrix.dotnet }}
+        shell: bash
         run: |
-          VERSION=$(echo ${{ matrix.dotnet }} | sed -E "s/^([0-9]+).*/\1/")
-          echo {\"sdk\": {\"version\": \"${VERSION}\"}} > global.json
-          cat global.json
-      - name: Display dotnet version
-        run: dotnet --version
+          set -euo pipefail
+
+          SDK_MAJOR="${REQUESTED_DOTNET_VERSION%%.*}"
+          SDK_VERSION=$(
+            dotnet --list-sdks |
+              awk -v prefix="${SDK_MAJOR}." \
+                '$1 ~ ("^" prefix) { print $1 }' |
+              sort -V |
+              tail -n 1
+          )
+
+          if [ -z "${SDK_VERSION}" ]; then
+            echo "❌ No installed .NET ${SDK_MAJOR}.x SDK was found."
+            exit 1
+          fi
+
+          printf \
+            '{"sdk":{"version":"%s","rollForward":"latestPatch"}}\n' \
+            "${SDK_VERSION}" \
+            > global.json
+
+          dotnet --version
       - name: Install dependencies
         run: cd ${{ env.TEMPLATE_ROOT }} && dotnet restore
       - name: Build
@@ -59,6 +87,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.SOURCE_SHA || github.sha }}
       - name: Install Node
         uses: actions/setup-node@v7
         with:
@@ -83,6 +113,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.SOURCE_SHA || github.sha }}
       - name: Setup .NET ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v6
         with:
@@ -150,7 +182,10 @@ jobs:
         env:
           VERSION: ${{ needs.ReleaseDryRun.outputs.VERSION }}
           RELEASE_NOTES: ${{ needs.ReleaseDryRun.outputs.RELEASE_NOTES }}
+        shell: bash
         run: |
+          set -euo pipefail
+
           echo "🕘 Updating ${FILE_CHANGELOG} and other metadata..."
 
           echo ========== Update ${FILE_CHANGELOG} file ==========
@@ -189,6 +224,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.SOURCE_SHA || github.sha }}
       - name: Setup required .NET ${{ env.DOTNET_VERSION }} # always install the min .NET version required by the package
         uses: actions/setup-dotnet@v6
         with:
@@ -198,16 +235,39 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Choose .NET version
+        env:
+          REQUESTED_DOTNET_VERSION: ${{ matrix.dotnet }}
+        shell: bash
         run: |
-          VERSION=$(echo ${{ matrix.dotnet }} | sed -E "s/^([0-9]+).*/\1/")
-          echo {\"sdk\": {\"version\": \"${VERSION}\"}} > global.json
-          cat global.json
-      - name: Display dotnet version
-        run: dotnet --version
+          set -euo pipefail
+
+          SDK_MAJOR="${REQUESTED_DOTNET_VERSION%%.*}"
+          SDK_VERSION=$(
+            dotnet --list-sdks |
+              awk -v prefix="${SDK_MAJOR}." \
+                '$1 ~ ("^" prefix) { print $1 }' |
+              sort -V |
+              tail -n 1
+          )
+
+          if [ -z "${SDK_VERSION}" ]; then
+            echo "❌ No installed .NET ${SDK_MAJOR}.x SDK was found."
+            exit 1
+          fi
+
+          printf \
+            '{"sdk":{"version":"%s","rollForward":"latestPatch"}}\n' \
+            "${SDK_VERSION}" \
+            > global.json
+
+          dotnet --version
       - name: Install template
         run: cd ${{ env.TEMPLATE_ROOT }} && dotnet new install ./
       - name: Generate solution
+        shell: bash
         run: |
+          set -euo pipefail
+
           mkdir temp && \
           cd temp && \
           dotnet new clt -n MyLibLinux
@@ -228,6 +288,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.SOURCE_SHA || github.sha }}
       - name: Setup required .NET ${{ env.DOTNET_VERSION }} # always install the min .NET version required by the package
         uses: actions/setup-dotnet@v6
         with:
@@ -236,8 +298,42 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - name: Display dotnet version
-        run: dotnet --version
+      - name: Choose .NET version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $sdkMajor = ($env:DOTNET_VERSION -split '\.')[0]
+
+          $sdkVersion = dotnet --list-sdks |
+            ForEach-Object {
+              if ($_ -match '^(\S+)\s') {
+                $Matches[1]
+              }
+            } |
+            Where-Object { $_ -like "${sdkMajor}.*" } |
+            Sort-Object {
+              [System.Management.Automation.SemanticVersion]$_
+            } |
+            Select-Object -Last 1
+
+          if (-not $sdkVersion) {
+            throw "No installed .NET ${sdkMajor}.x SDK was found."
+          }
+
+          $globalJson = @{
+            sdk = @{
+              version = $sdkVersion
+              rollForward = 'latestPatch'
+            }
+          } | ConvertTo-Json -Depth 3 -Compress
+
+          Set-Content `
+            -Path 'global.json' `
+            -Value $globalJson `
+            -Encoding utf8NoBOM
+
+          dotnet --version
       - name: Install template
         run: cd ${{ env.TEMPLATE_ROOT }} && dotnet new install ./
       - name: Generate solution
